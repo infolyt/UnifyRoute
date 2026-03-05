@@ -204,7 +204,7 @@ Rules:
     }
 
     return (
-        <Dialog open={!!tier} onOpenChange={(v) => !v && handleClose()}>
+        <Dialog open={!!tier} onOpenChange={(v: boolean) => !v && handleClose()}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">

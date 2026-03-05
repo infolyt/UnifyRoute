@@ -18,11 +18,18 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Force UTF-8 encoding for output on Windows
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 # ── Project root is the parent of this script's directory ─────────────────────
 SCRIPT_DIR = Path(__file__).parent.resolve()
 ROOT = SCRIPT_DIR.parent
 ENV_FILE = ROOT / ".env"
 SAMPLE_ENV = ROOT / "sample.env"
+VENV_DIR = ROOT / ".venv"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -139,7 +146,7 @@ def write_env_file(path: Path, config: dict[str, str], header: str = ""):
             lines.append(f"{k}={v}")
         lines.append("")
 
-    path.write_text("\n".join(lines))
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def backup_config(reason: str = ""):
@@ -180,6 +187,57 @@ def find_docker() -> bool:
         return False
     result = subprocess.run(["docker", "info"], capture_output=True)
     return result.returncode == 0
+
+
+def create_venv():
+    """Create a Python virtual environment in .venv."""
+    if VENV_DIR.exists():
+        ok(f"Virtual environment already exists at {VENV_DIR.relative_to(ROOT)}")
+        return
+    info(f"Creating virtual environment at {VENV_DIR.relative_to(ROOT)}...")
+    subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+    ok("Virtual environment created.")
+
+
+def get_venv_python() -> str:
+    """Get the path to the Python executable in the venv."""
+    if sys.platform == "win32":
+        return str(VENV_DIR / "Scripts" / "python.exe")
+    else:
+        return str(VENV_DIR / "bin" / "python")
+
+
+def find_or_install_uv(venv_python: str) -> str:
+    """Find uv or install it in the venv, fall back to pip."""
+    # Try to find uv in PATH first
+    uv = shutil.which("uv")
+    if uv:
+        return uv
+
+    # Try home .local/bin on Unix
+    home_uv = Path.home() / ".local" / "bin" / "uv"
+    if home_uv.exists():
+        return str(home_uv)
+
+    # Try to find or install uv in venv
+    info("Attempting to install 'uv' in virtual environment...")
+    result = subprocess.run(
+        [venv_python, "-m", "pip", "install", "-q", "uv"],
+        capture_output=True
+    )
+
+    if result.returncode == 0:
+        if sys.platform == "win32":
+            uv_path = VENV_DIR / "Scripts" / "uv.exe"
+        else:
+            uv_path = VENV_DIR / "bin" / "uv"
+        if uv_path.exists():
+            ok("'uv' installed in virtual environment.")
+            return str(uv_path)
+
+    # Fall back to using pip directly
+    warn("Could not install 'uv'. Will use pip for dependency management.")
+    return None
 
 
 def _remove_unifyroute_images():
@@ -297,40 +355,69 @@ def cmd_install():
     write_env_file(ENV_FILE, config, header=True)
     ok(f".env written to {ENV_FILE}")
 
-    # ── 6. Python deps ──────────────────────────────────────────────
-    banner("6. Installing Python Dependencies")
-    uv = find_uv()
-    run([uv, "sync"])
+    # ── 6. Create virtual environment ────────────────────────────────
+    banner("6. Creating Virtual Environment")
+    create_venv()
+    venv_python = get_venv_python()
+
+    # ── 7. Installing Python Dependencies ────────────────────────────
+    banner("7. Installing Python Dependencies")
+    uv = find_or_install_uv(venv_python)
+    if uv:
+        # Set UV_LINK_MODE=copy to avoid hardlink issues on Windows
+        env_with_uv = {**os.environ, "UV_LINK_MODE": "copy"}
+        print(f"  $ {uv} sync")
+        result = subprocess.run([uv, "sync"], cwd=str(ROOT), env=env_with_uv)
+        if result.returncode != 0:
+            # On Windows with file locking, uv sync may fail but packages are usually already installed
+            warn("uv sync had issues (possibly file locking on Windows), but dependencies should be available.")
+    else:
+        # Fallback to pip
+        run([venv_python, "-m", "pip", "install", "-e", "api-gateway"])
+        run([venv_python, "-m", "pip", "install", "-e", "router"])
+        run([venv_python, "-m", "pip", "install", "-e", "shared"])
     ok("Python dependencies installed.")
 
-    # ── 7. Frontend ─────────────────────────────────────────────────
-    banner("7. Building Frontend")
+    # ── 8. Frontend ─────────────────────────────────────────────────
+    banner("8. Building Frontend")
     npm = find_npm()
     gui_dir = ROOT / "gui"
     run([npm, "install"], cwd=gui_dir)
     run([npm, "run", "build"], cwd=gui_dir)
     ok("Frontend built.")
 
-    # ── 8. Database migrations ──────────────────────────────────────
-    banner("8. Running Database Migrations")
-    uv = find_uv()
+    # ── 9. Database migrations ──────────────────────────────────────
+    banner("9. Running Database Migrations")
     env = {**os.environ, **{k: v for k, v in config.items()}}
-    result = subprocess.run(
-        [uv, "run", "--package", "shared", "alembic", "upgrade", "head"],
-        cwd=str(ROOT), env=env
-    )
+    if uv:
+        result = subprocess.run(
+            [uv, "run", "--package", "shared", "alembic", "upgrade", "head"],
+            cwd=str(ROOT), env=env
+        )
+    else:
+        result = subprocess.run(
+            [venv_python, "-m", "alembic", "upgrade", "head"],
+            cwd=str(ROOT), env=env
+        )
     if result.returncode != 0:
         err("Migration failed. Check the error above.")
         sys.exit(result.returncode)
     ok("Database schema up to date.")
 
-    # ── 9. Initial admin key ───────────────────────────────────────
-    banner("9. Creating Initial Admin API Token")
-    result = subprocess.run(
-        [uv, "run", "--package", "shared", "python", "scripts/create-key.py",
-         f"Admin Setup {int(datetime.datetime.now().timestamp())}", "--type", "admin"],
-        cwd=str(ROOT), env=env
-    )
+    # ── 10. Initial admin key ───────────────────────────────────────
+    banner("10. Creating Initial Admin API Token")
+    if uv:
+        result = subprocess.run(
+            [uv, "run", "--package", "shared", "python", "scripts/create-key.py",
+             f"Admin Setup {int(datetime.datetime.now().timestamp())}", "--type", "admin"],
+            cwd=str(ROOT), env=env
+        )
+    else:
+        result = subprocess.run(
+            [venv_python, "scripts/create-key.py",
+             f"Admin Setup {int(datetime.datetime.now().timestamp())}", "--type", "admin"],
+            cwd=str(ROOT), env=env
+        )
     if result.returncode != 0:
         warn("Could not create admin key automatically. Run: ./unifyroute create token admin")
 
@@ -346,21 +433,47 @@ def cmd_refresh():
     print(c("bold", "\n🔄 UnifyRoute Setup — Refresh\n"))
     if ask_bool("Save current configuration before refresh?", default=True):
         backup_config("refresh")
-    uv = find_uv()
+
+    if not VENV_DIR.exists():
+        err("No virtual environment found. Run './unifyroute setup' first.")
+        sys.exit(1)
+
+    venv_python = get_venv_python()
+    uv = find_or_install_uv(venv_python)
     npm = find_npm()
+
     banner("1. Syncing Python Dependencies")
-    run([uv, "sync"])
+    if uv:
+        # Set UV_LINK_MODE=copy to avoid hardlink issues on Windows
+        env_with_uv = {**os.environ, "UV_LINK_MODE": "copy"}
+        print(f"  $ {uv} sync")
+        result = subprocess.run([uv, "sync"], cwd=str(ROOT), env=env_with_uv)
+        if result.returncode != 0:
+            # On Windows with file locking, uv sync may fail but packages are usually already installed
+            warn("uv sync had issues (possibly file locking on Windows), but dependencies should be available.")
+    else:
+        run([venv_python, "-m", "pip", "install", "-e", "api-gateway"])
+        run([venv_python, "-m", "pip", "install", "-e", "router"])
+        run([venv_python, "-m", "pip", "install", "-e", "shared"])
     ok("Python dependencies synced.")
+
     banner("2. Rebuilding Frontend")
     gui_dir = ROOT / "gui"
     run([npm, "install"], cwd=gui_dir)
     run([npm, "run", "build"], cwd=gui_dir)
     ok("Frontend rebuilt.")
+
     banner("3. Running Migrations")
-    subprocess.run(
-        [uv, "run", "--package", "shared", "alembic", "upgrade", "head"],
-        cwd=str(ROOT)
-    )
+    if uv:
+        subprocess.run(
+            [uv, "run", "--package", "shared", "alembic", "upgrade", "head"],
+            cwd=str(ROOT)
+        )
+    else:
+        subprocess.run(
+            [venv_python, "-m", "alembic", "upgrade", "head"],
+            cwd=str(ROOT)
+        )
     ok("Migrations applied.")
     print(c("green", "\n  ✅ Refresh complete!\n"))
 

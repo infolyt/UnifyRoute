@@ -456,7 +456,7 @@ export function Credentials() {
             </div>
 
             {/* ── unified Add Credential dialog ── */}
-            <Dialog open={open} onOpenChange={v => !v && closeDialog()}>
+            <Dialog open={open} onOpenChange={(v: boolean) => !v && closeDialog()}>
                 <DialogContent className="sm:max-w-md">
                     {/* ── Step 1: pick provider ── */}
                     {step === "pick-provider" && (

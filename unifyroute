@@ -36,6 +36,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+# Force UTF-8 encoding for output
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 SCRIPT_DIR = Path(__file__).parent.resolve()
 UV = None  # resolved lazily
 
@@ -45,11 +51,24 @@ def _find_uv() -> str:
     if UV:
         return UV
     import shutil
-    uv = shutil.which("uv")
+
+    # First check venv
+    venv_dir = SCRIPT_DIR / ".venv"
+    if sys.platform == "win32":
+        venv_uv = venv_dir / "Scripts" / "uv.exe"
+    else:
+        venv_uv = venv_dir / "bin" / "uv"
+
+    if venv_uv.exists():
+        uv = str(venv_uv)
+    else:
+        uv = shutil.which("uv")
+
     if not uv:
         home_uv = Path.home() / ".local" / "bin" / "uv"
         if home_uv.exists():
             uv = str(home_uv)
+
     if not uv:
         _die("'uv' not found. Install: curl -LsSf https://astral.sh/uv/install.sh | sh")
     UV = uv

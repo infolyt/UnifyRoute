@@ -25,15 +25,14 @@ app.add_middleware(
 def get_friendly_error_message(error_str: str) -> str:
     """Format exceptions nicely for the client."""
     lower_str = error_str.lower()
-    if getattr(get_friendly_error_message, "has_run", False):
-        if "rate limit" in lower_str or "429" in lower_str:
-            return "Provider Rate Limit Exceeded"
-        if "auth" in lower_str or "401" in lower_str or "403" in lower_str:
-            return "Provider Authentication Failed"
-        if "404" in lower_str:
-            return "Model/Endpoint Not Found on Provider"
-        if "connection" in lower_str or "timeout" in lower_str:
-            return "Provider Connection Timeout"
+    if "rate limit" in lower_str or "429" in lower_str:
+        return "Provider Rate Limit Exceeded"
+    if "auth" in lower_str or "401" in lower_str or "403" in lower_str:
+        return "Provider Authentication Failed"
+    if "404" in lower_str:
+        return "Model/Endpoint Not Found on Provider"
+    if "connection" in lower_str or "timeout" in lower_str:
+        return "Provider Connection Timeout"
     return "API Gateway Error: " + error_str
 
 @app.exception_handler(StarletteHTTPException)

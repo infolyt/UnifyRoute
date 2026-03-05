@@ -172,7 +172,7 @@ function BrainPanel({
     const disableCount = suggestions?.filter((s) => s.action === "disable").length ?? 0
 
     return (
-        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
             <DialogContent className="sm:max-w-2xl">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
@@ -346,7 +346,7 @@ function AddModelDialog({
     }
 
     return (
-        <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <Dialog open={open} onOpenChange={(v: boolean) => !v && onClose()}>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Add Model Manually</DialogTitle>

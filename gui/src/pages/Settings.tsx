@@ -264,7 +264,7 @@ export function Settings() {
             </div>
 
             {/* Create Dialog */}
-            <Dialog open={createOpen} onOpenChange={v => !v && closeCreate()}>
+            <Dialog open={createOpen} onOpenChange={(v: boolean) => !v && closeCreate()}>
                 <DialogContent>
                     {!createdToken ? (
                         <form onSubmit={handleCreate}>

@@ -278,7 +278,7 @@ function StatusTab() {
             </div>
 
             {/* Assign Dialog */}
-            <Dialog open={assignOpen} onOpenChange={v => !v && setAssignOpen(false)}>
+            <Dialog open={assignOpen} onOpenChange={(v: boolean) => !v && setAssignOpen(false)}>
                 <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                         <DialogTitle>Assign Provider to Brain</DialogTitle>

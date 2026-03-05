@@ -298,7 +298,7 @@ export function Providers() {
             </div>
 
             {/* ── Add Provider Dialog ── */}
-            <Dialog open={mode === "add"} onOpenChange={open => !open && setMode(null)}>
+            <Dialog open={mode === "add"} onOpenChange={(open: boolean) => !open && setMode(null)}>
                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Add Provider</DialogTitle>
@@ -318,7 +318,7 @@ export function Providers() {
             </Dialog>
 
             {/* ── Edit Provider Dialog ── */}
-            <Dialog open={mode === "edit"} onOpenChange={open => !open && setMode(null)}>
+            <Dialog open={mode === "edit"} onOpenChange={(open: boolean) => !open && setMode(null)}>
                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Edit Provider</DialogTitle>
@@ -337,7 +337,7 @@ export function Providers() {
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={mode === "delete"} onOpenChange={open => !open && setMode(null)}>
+            <Dialog open={mode === "delete"} onOpenChange={(open: boolean) => !open && setMode(null)}>
                 <DialogContent className="sm:max-w-sm">
                     <DialogHeader>
                         <DialogTitle>Delete Provider</DialogTitle>
@@ -357,7 +357,7 @@ export function Providers() {
             </Dialog>
 
             {/* ── Seed Provider Dialog ── */}
-            <Dialog open={mode === "seed"} onOpenChange={open => !open && setMode(null)}>
+            <Dialog open={mode === "seed"} onOpenChange={(open: boolean) => !open && setMode(null)}>
                 <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Seed Providers</DialogTitle>

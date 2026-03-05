@@ -1,7 +1,7 @@
 """add rate_limit_rpm to gateway_keys
 
 Revision ID: b84eb3d51464
-Revises: 3217fb2c0b67
+Revises: e7e89709f21c
 Create Date: 2026-02-27 23:08:36.079976
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = 'b84eb3d51464'
-down_revision: Union[str, Sequence[str], None] = '3217fb2c0b67'
+down_revision: Union[str, Sequence[str], None] = 'e7e89709f21c'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

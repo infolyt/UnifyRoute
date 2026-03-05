@@ -117,9 +117,7 @@ async def antigravity_start(
     
     netloc = request.base_url.netloc
     redirect_uri = f"{request.base_url.scheme}://{netloc}/api/oauth/google-antigravity/callback"
-    
-    print(f"DEBUG_OAUTH_START: Generating redirect_uri={redirect_uri}")
-    
+
     params = {
         "client_id": _ANTIGRAVITY_CLIENT_ID,
         "redirect_uri": redirect_uri,
@@ -156,8 +154,6 @@ async def antigravity_callback(
     code_verifier, provider_id_str = _oauth_states.pop(state)
     netloc = request.base_url.netloc
     redirect_uri = f"{request.base_url.scheme}://{netloc}/api/oauth/google-antigravity/callback"
-    
-    print(f"DEBUG_OAUTH: Generating redirect_uri={redirect_uri}")
 
     async with httpx.AsyncClient() as client:
         token_resp = await client.post(

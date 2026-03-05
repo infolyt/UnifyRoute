@@ -34,11 +34,11 @@ async def fetch_json_safe(
                 
             r.raise_for_status()
             return r.json()
-    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as getattr_err:
-        # OpenClaw connectivity gracefully swallows fetch failures at the polling layer 
+    except (httpx.RequestError, httpx.HTTPStatusError, ValueError) as request_err:
+        # OpenClaw connectivity gracefully swallows fetch failures at the polling layer
         # to prevent gateway crashes, returning null equivalents.
         import logging
-        logging.getLogger("llmway.adapters").warning(f"[fetch_json_safe] {method} {url} failed: {getattr_err}")
+        logging.getLogger("llmway.adapters").warning(f"[fetch_json_safe] {method} {url} failed: {request_err}")
         return None
     except Exception as e:
         import logging

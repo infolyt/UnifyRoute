@@ -261,7 +261,7 @@ def _oauth_error_html(message: str) -> HTMLResponse:
     </body>
     </html>
     """
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=html, status_code=400)
 
 @router.get("/start/{provider_id}")
 async def oauth_start(

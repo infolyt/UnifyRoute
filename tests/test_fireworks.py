@@ -63,6 +63,7 @@ async def test_list_models_auth_failure(adapter):
 async def test_get_quota_success(adapter):
     mock_resp = MagicMock()
     mock_resp.status_code = 200
+    mock_resp.headers = {}
 
     with patch("httpx.AsyncClient") as mock_client_cls:
         mock_client = AsyncMock()

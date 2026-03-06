@@ -543,8 +543,8 @@ export function ModelManagement() {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-blue-500/20 border border-violet-200 dark:border-violet-800">
-                        <PackageCheck className="h-7 w-7 text-violet-500" />
+                    <div className="p-3 rounded-xl bg-gradient-to-br from-orange-500/20 to-amber-500/20 border border-orange-200 dark:border-orange-800">
+                        <PackageCheck className="h-7 w-7 text-orange-500" />
                     </div>
                     <div>
                         <h2 className="text-3xl font-bold tracking-tight">Model Management</h2>

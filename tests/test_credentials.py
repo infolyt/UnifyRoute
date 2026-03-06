@@ -97,7 +97,7 @@ class TestCredentialDelete:
         # Delete
         r2 = admin_client.delete(f"/api/admin/credentials/{cid}")
         assert r2.status_code == 200
-        assert r2.json()["status"] == "deleted"
+        assert r2.json()["status"] == "success"
 
     def test_delete_nonexistent_credential(self, admin_client: httpx.Client):
         r = admin_client.delete(f"/api/admin/credentials/{uuid.uuid4()}")

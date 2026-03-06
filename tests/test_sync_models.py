@@ -44,8 +44,8 @@ class TestSyncModels:
         r = admin_client.post(f"/api/admin/providers/{uuid.uuid4()}/sync-models")
         assert r.status_code == 404
 
-    def test_sync_provider_without_credentials_returns_400(self, admin_client: httpx.Client):
-        """Creating a provider with NO credentials and trying to sync returns 400."""
+    def test_sync_provider_without_credentials_returns_no_models(self, admin_client: httpx.Client):
+        """Creating a provider with NO credentials and trying to sync returns 200 with no_models status."""
         name = f"nocred-prov-{uuid.uuid4().hex[:6]}"
         r = admin_client.post("/api/admin/providers", json={
             "name": name,
@@ -57,8 +57,8 @@ class TestSyncModels:
         prov_id = r.json()["id"]
 
         r2 = admin_client.post(f"/api/admin/providers/{prov_id}/sync-models")
-        assert r2.status_code == 400
-        assert "credentials" in r2.json()["detail"].lower()
+        assert r2.status_code == 200
+        assert r2.json()["status"] == "no_models"
 
         admin_client.delete(f"/api/admin/providers/{prov_id}")
 

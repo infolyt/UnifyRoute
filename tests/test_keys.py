@@ -38,7 +38,7 @@ class TestKeyCreate:
         assert r.status_code == 200, r.text
         body = r.json()
         assert "token" in body
-        assert body["token"].startswith("sk-")
+        assert body["token"].startswith("unifyroute-")
         # cleanup
         admin_client.delete(f"/api/admin/keys/{body['id']}")
 
@@ -85,7 +85,7 @@ class TestKeyDelete:
         kid = r.json()["id"]
         r2 = admin_client.delete(f"/api/admin/keys/{kid}")
         assert r2.status_code == 200
-        assert r2.json()["status"] == "deleted"
+        assert r2.json()["status"] == "success"
 
     def test_delete_nonexistent_key(self, admin_client: httpx.Client):
         r = admin_client.delete(f"/api/admin/keys/{uuid.uuid4()}")

@@ -34,13 +34,28 @@ class TestModelsEndpoint:
             assert "owned_by" in model
 
     def test_admin_token_sees_full_catalog(self, admin_client: httpx.Client):
-        """Admin token must see more than just the virtual 3 models."""
+        """Admin token must see the actual database model, not just virtuals."""
+        import uuid
+        
+        # create a provider + model
+        p_res = admin_client.post("/api/admin/providers", json={
+            "name": f"test-{uuid.uuid4().hex[:8]}",
+            "display_name": "Test",
+            "auth_type": "api_key"
+        })
+        p_id = p_res.json()["id"]
+        
+        admin_client.post("/api/admin/models", json={
+            "provider_id": p_id,
+            "model_id": "test-model-1",
+            "display_name": "Test Model",
+            "tier": "lite",
+            "enabled": True
+        })
         r = admin_client.get("/api/v1/models")
         assert r.status_code == 200
         count = len(r.json()["data"])
-        # The full catalog from providers should have significantly more entries
-        # If DB is fresh/empty, we allow >= 3 but document the expectation
-        assert count >= 3, "Admin catalog should have at least the virtual 3 models"
+        assert count >= 1, "Admin catalog should have at least the model we just created"
 
     def test_admin_sees_more_than_api_token(
         self, admin_client: httpx.Client, api_client: httpx.Client

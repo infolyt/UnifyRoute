@@ -37,8 +37,18 @@ export async function adminLogout() {
 }
 
 
+const getHeaders = () => {
+    const token = getAuthToken()
+    const headers: Record<string, string> = {}
+    if (token && token !== 'logged_in') {
+        headers['Authorization'] = `Bearer ${token}`
+    }
+    return headers
+}
+
 export const fetcher = async (url: string) => {
     const res = await fetch(`${API_BASE}${url}`, {
+        headers: getHeaders(),
         credentials: 'include'
     })
     if (res.status === 401) {
@@ -48,8 +58,10 @@ export const fetcher = async (url: string) => {
         throw new Error('Session expired. Please log in again.')
     }
     if (!res.ok) {
-        const error: any = new Error('An error occurred while fetching the data.')
-        error.info = await res.json().catch(() => ({}))
+        const info = await res.json().catch(() => ({}))
+        const errorMsg = info.detail || info.error?.message || 'An error occurred while fetching the data.'
+        const error: any = new Error(errorMsg)
+        error.info = info
         error.status = res.status
         throw error
     }
@@ -62,7 +74,7 @@ export const fetcher = async (url: string) => {
 async function postJSON(path: string, body: object) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify(body)
     })
@@ -76,6 +88,7 @@ async function postJSON(path: string, body: object) {
 async function deleteRequest(path: string) {
     const res = await fetch(`${API_BASE}${path}`, {
         method: 'DELETE',
+        headers: getHeaders(),
         credentials: 'include'
     })
     if (!res.ok) {
@@ -179,7 +192,7 @@ export async function createProvider(data: { name: string; display_name: string;
 export async function updateProvider(id: string, data: { name?: string; display_name?: string; auth_type?: string; enabled?: boolean }) {
     const res = await fetch(`${API_BASE}/admin/providers/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify(data)
     })
@@ -197,7 +210,7 @@ export async function deleteProvider(id: string) {
 export async function updateModel(id: string, data: { tier?: string; cost_in_1m?: number; cost_out_1m?: number; enabled?: boolean }) {
     const res = await fetch(`${API_BASE}/admin/models/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify(data)
     })
@@ -223,7 +236,7 @@ export async function deleteCredential(id: string) {
 export async function updateCredential(id: string, data: { label?: string; enabled?: boolean }) {
     const res = await fetch(`${API_BASE}/admin/credentials/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify(data)
     })
@@ -248,6 +261,7 @@ export async function getCredentialQuota(id: string) {
  */
 export async function startOAuthFlow(provider_id: string): Promise<string> {
     const res = await fetch(`${API_BASE}/oauth/start/${provider_id}`, {
+        headers: getHeaders(),
         credentials: 'include'
     })
     if (!res.ok) {
@@ -265,6 +279,7 @@ export async function startOAuthFlow(provider_id: string): Promise<string> {
  */
 export async function startAntigravityOAuth(): Promise<string> {
     const res = await fetch(`${API_BASE}/oauth/google-antigravity/start`, {
+        headers: getHeaders(),
         credentials: 'include'
     })
     if (!res.ok) {
@@ -284,7 +299,7 @@ export async function getProviderSeeds(): Promise<any[]> {
 export async function seedProviders(providers?: string[]): Promise<{ inserted: string[]; skipped: number }> {
     const res = await fetch(`${API_BASE}/admin/providers/seed`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify({ providers: providers || null })
     })
@@ -310,7 +325,7 @@ export async function syncProviderModels(providerId: string) {
 export async function updateGatewayKey(id: string, data: { label?: string }) {
     const res = await fetch(`${API_BASE}/admin/keys/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...getHeaders() },
         credentials: 'include',
         body: JSON.stringify(data)
     })
@@ -321,8 +336,8 @@ export async function updateGatewayKey(id: string, data: { label?: string }) {
     return res.json()
 }
 
-export async function revealGatewayKey(id: string) {
-    return fetcher(`/admin/keys/${id}/reveal`)
+export async function revealGatewayKey(id: string, password?: string) {
+    return postJSON(`/admin/keys/${id}/reveal`, { password })
 }
 
 // ── Chat Playground helpers ─────────────────────────────────────────────
@@ -353,6 +368,7 @@ export async function sendChatMessage(
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...(typeof getHeaders !== 'undefined' ? getHeaders() : {})
         },
         credentials: 'include',
         body: JSON.stringify({
@@ -391,6 +407,7 @@ export function sendChatMessageStream(
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...(typeof getHeaders !== 'undefined' ? getHeaders() : {})
                     },
                     credentials: 'include',
                     body: JSON.stringify({
@@ -544,7 +561,7 @@ export async function brainAssignProvider(data: {
 export async function updateBrainProvider(entryId: string, data: { priority?: number; enabled?: boolean }) {
     const res = await fetch(`${API_BASE}/admin/brain/providers/${entryId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(typeof getHeaders !== 'undefined' ? getHeaders() : {}) },
         credentials: 'include',
         body: JSON.stringify(data)
     })

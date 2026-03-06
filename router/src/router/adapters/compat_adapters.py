@@ -50,6 +50,8 @@ class _OpenAICompatAdapter(ProviderAdapter):
                     f"{self._base_url}/models",
                     headers={"Authorization": f"Bearer {api_key}"}
                 )
+                if r.status_code in (401, 403):
+                    return QuotaInfo(tokens_remaining=0)
                 r.raise_for_status()
                 x_tokens = r.headers.get("x-ratelimit-remaining-tokens", "")
                 x_requests = r.headers.get("x-ratelimit-remaining-requests", "")
@@ -58,6 +60,10 @@ class _OpenAICompatAdapter(ProviderAdapter):
                     tokens_remaining=int(x_tokens) if x_tokens.isdigit() else self._default_tokens,
                     requests_remaining=int(x_requests) if x_requests.isdigit() else 1_000,
                 )
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code in (401, 403):
+                return QuotaInfo(tokens_remaining=0)
+            return QuotaInfo(tokens_remaining=self._default_tokens)
         except Exception:
             # Mirroring OpenClaw's infra gracefully swallowing failures
             return QuotaInfo(tokens_remaining=self._default_tokens)

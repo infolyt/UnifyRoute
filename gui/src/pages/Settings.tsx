@@ -93,8 +93,10 @@ export function Settings() {
             setRevealedKeys(copy)
             return
         }
+        const password = prompt("Enter Master Password to reveal key:");
+        if (!password) return;
         try {
-            const res = await revealGatewayKey(id)
+            const res = await revealGatewayKey(id, password)
             setRevealedKeys(prev => ({ ...prev, [id]: res.reveal_info }))
         } catch (err: any) {
             alert(err.message || "Failed to reveal key")
@@ -185,7 +187,7 @@ export function Settings() {
                                                 ) : (
                                                     <div className="flex items-center gap-2 group">
                                                         <span>{k.label}</span>
-                                                        {k.scopes?.includes('admin') && <Badge variant="outline" className="font-normal">Admin</Badge>}
+                                                        {k.scopes?.includes('admin') ? <Badge variant="outline" className="font-normal text-destructive">Admin</Badge> : <Badge variant="outline" className="font-normal border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400">Access</Badge>}
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"

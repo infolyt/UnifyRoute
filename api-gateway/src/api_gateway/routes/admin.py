@@ -137,7 +137,7 @@ async def get_provider_seeds(
 
 @router.post("/providers/seed")
 async def seed_providers(
-    req: SeedRequest,
+    req: SeedRequest = None,
     key: GatewayKey = Depends(require_admin_key),
     session: AsyncSession = Depends(get_db_session)
 ):
@@ -145,7 +145,7 @@ async def seed_providers(
     result = await session.execute(stmt)
     existing = set(result.scalars().all())
     
-    selected_names = set(req.providers) if req.providers else None
+    selected_names = set(req.providers) if req and req.providers else None
 
     inserted = []
     skipped = 0
@@ -540,7 +540,9 @@ async def update_key(
         raise HTTPException(status_code=404, detail="Key not found")
         
     if updates.label is not None:
-        db_obj.label = updates.label
+        if not updates.label.strip():
+            raise HTTPException(status_code=422, detail="Label cannot be empty")
+        db_obj.label = updates.label.strip()
         
     await session.commit()
     await session.refresh(db_obj)
@@ -713,19 +715,28 @@ async def create_admin_model(
     await session.refresh(model_db)
     return model_db
 
-@router.get("/keys/{key_id}/reveal")
+class RevealKeyRequest(BaseModel):
+    password: Optional[str] = None
+
+@router.post("/keys/{key_id}/reveal")
 async def reveal_key(
     key_id: UUID,
+    req: RevealKeyRequest,
     key: GatewayKey = Depends(require_admin_key),
     session: AsyncSession = Depends(get_db_session)
 ):
+    import os
+    admin_password = os.environ.get("MASTER_PASSWORD") or os.environ.get("ADMIN_PASSWORD", "admin")
+    if req.password != admin_password:
+        raise HTTPException(status_code=401, detail="Invalid master password")
+
     result = await session.execute(select(GatewayKey).where(GatewayKey.id == key_id))
     db_key = result.scalar_one_or_none()
     if not db_key:
         raise HTTPException(status_code=404, detail="Key not found")
     
     # Return the raw token if available, otherwise just part of the hash
-    reveal_info = db_key.raw_token if db_key.raw_token else f"sk-...{db_key.key_hash[:8]}"
+    reveal_info = db_key.raw_token if hasattr(db_key, "raw_token") and db_key.raw_token else f"sk-...{db_key.key_hash[:8]}"
     return {"reveal_info": reveal_info}
 
 @router.get("/logs/stats", response_model=LogStatsResponse)

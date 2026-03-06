@@ -21,6 +21,10 @@ export function Settings() {
     const [editingId, setEditingId] = useState<string | null>(null)
     const [editLabel, setEditLabel] = useState("")
     const [revealedKeys, setRevealedKeys] = useState<{ [id: string]: string }>({})
+    const [revealModalOpen, setRevealModalOpen] = useState(false)
+    const [keyIdToReveal, setKeyIdToReveal] = useState<string | null>(null)
+    const [masterPassword, setMasterPassword] = useState("")
+    const [revealing, setRevealing] = useState(false)
 
     useEffect(() => {
         setActiveToken(getAuthToken())
@@ -86,20 +90,30 @@ export function Settings() {
         }
     }
 
-    async function handleReveal(id: string) {
+    function handleRevealClick(id: string) {
         if (revealedKeys[id]) {
             const copy = { ...revealedKeys }
             delete copy[id]
             setRevealedKeys(copy)
             return
         }
-        const password = prompt("Enter Master Password to reveal key:");
-        if (!password) return;
+        setKeyIdToReveal(id)
+        setMasterPassword("")
+        setRevealModalOpen(true)
+    }
+
+    async function submitReveal(e: React.FormEvent) {
+        e.preventDefault();
+        if (!keyIdToReveal || !masterPassword) return;
+        setRevealing(true);
         try {
-            const res = await revealGatewayKey(id, password)
-            setRevealedKeys(prev => ({ ...prev, [id]: res.reveal_info }))
+            const res = await revealGatewayKey(keyIdToReveal, masterPassword);
+            setRevealedKeys(prev => ({ ...prev, [keyIdToReveal]: res.reveal_info }));
+            setRevealModalOpen(false);
         } catch (err: any) {
-            alert(err.message || "Failed to reveal key")
+            alert(err.message || "Failed to reveal key");
+        } finally {
+            setRevealing(false);
         }
     }
 
@@ -205,7 +219,7 @@ export function Settings() {
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => handleReveal(k.id)}
+                                                        onClick={() => handleRevealClick(k.id)}
                                                         className="h-6 w-6 p-0"
                                                         title={revealedKeys[k.id] ? "Hide Key" : "Reveal partial key"}
                                                     >
@@ -304,6 +318,39 @@ export function Settings() {
                             </DialogFooter>
                         </div>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Reveal Dialog */}
+            <Dialog open={revealModalOpen} onOpenChange={setRevealModalOpen}>
+                <DialogContent>
+                    <form onSubmit={submitReveal}>
+                        <DialogHeader>
+                            <DialogTitle>Authentication Required</DialogTitle>
+                            <DialogDescription>
+                                Please enter your Master Password to reveal this Gateway Key.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="revealPassword">Master Password</Label>
+                                <Input
+                                    id="revealPassword"
+                                    type="password"
+                                    value={masterPassword}
+                                    onChange={e => setMasterPassword(e.target.value)}
+                                    placeholder="Enter password"
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+                        <DialogFooter>
+                            <Button type="button" variant="outline" onClick={() => setRevealModalOpen(false)}>Cancel</Button>
+                            <Button type="submit" disabled={!masterPassword || revealing}>
+                                {revealing ? "Verifying..." : "Reveal Key"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </div>

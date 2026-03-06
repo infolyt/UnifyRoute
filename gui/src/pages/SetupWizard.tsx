@@ -79,12 +79,12 @@ function StepDot({ idx, current, label, Icon }: { idx: number; current: number; 
             <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${done
                 ? "bg-emerald-500 border-emerald-500 text-white"
                 : active
-                    ? "bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-500/30"
+                    ? "bg-violet-600 border-violet-600 text-white shadow-lg shadow-violet-500/30"
                     : "border-slate-300 dark:border-slate-700 text-slate-400"
                 }`}>
                 {done ? <Check size={18} /> : <Icon size={16} />}
             </div>
-            <span className={`text-[10px] font-semibold uppercase tracking-wider ${active ? "text-orange-500" : done ? "text-emerald-500" : "text-slate-400"}`}>
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${active ? "text-violet-500" : done ? "text-emerald-500" : "text-slate-400"}`}>
                 {label}
             </span>
         </div>
@@ -100,8 +100,8 @@ function StepConnector({ done }: { done: boolean }) {
 function SectionTitle({ icon: Icon, title, subtitle }: { icon: React.ElementType; title: string; subtitle: string }) {
     return (
         <div className="flex items-start gap-4 mb-8">
-            <div className="p-3 rounded-xl bg-orange-100 dark:bg-orange-500/10">
-                <Icon className="text-orange-600 dark:text-orange-400" size={22} />
+            <div className="p-3 rounded-xl bg-violet-100 dark:bg-violet-500/10">
+                <Icon className="text-violet-600 dark:text-violet-400" size={22} />
             </div>
             <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{title}</h2>

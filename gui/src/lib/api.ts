@@ -4,10 +4,8 @@ const API_BASE = '/api'
 
 export function getAuthToken(): string {
     const token = localStorage.getItem('admin_token') || ''
-    // Migration guard: old Login.tsx used to store the real JWT here.
-    // If we detect a JWT (always starts with 'ey'), evict it — auth is handled
-    // by the HTTPOnly cookie and the 'logged_in' flag should be used instead.
-    if (token.startsWith('ey')) {
+    // Migration guard: old app used 'ey' or 'logged_in'
+    if (token.startsWith('ey') || token === 'logged_in') {
         localStorage.removeItem('admin_token')
         return ''
     }
@@ -22,21 +20,10 @@ export function setAuthToken(token: string) {
     }
 }
 
-export async function adminLogin(password: string): Promise<string> {
-    const res = await fetch(`${API_BASE}/admin/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ password }),
-    })
-    if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.detail || 'Login failed')
-    }
-    const data = await res.json()
-    // We just use localStorage as a soft flag now, the real auth is the HTTPOnly cookie
-    if (data.token) setAuthToken('logged_in')
-    return data.token
+export async function adminLogin(adminKey: string): Promise<string> {
+    // Left for backwards compatibility if needed, but Login.tsx handles its own fetch
+    setAuthToken(adminKey)
+    return adminKey
 }
 
 export async function adminLogout() {
@@ -48,7 +35,7 @@ export async function adminLogout() {
 const getHeaders = () => {
     const token = getAuthToken()
     const headers: Record<string, string> = {}
-    if (token && token !== 'logged_in') {
+    if (token) {
         headers['Authorization'] = `Bearer ${token}`
     }
     return headers

@@ -510,6 +510,7 @@ async def create_key(
         id=uuid.uuid4(),
         label=req.label,
         key_hash=key_hash,
+        raw_token=raw_token,
         scopes=req.scopes,
         enabled=True
     )
